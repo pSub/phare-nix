@@ -89,7 +89,7 @@ in {
     services.phare.token = mkOption {
       type = types.str;
       default = null;
-      description = "";
+      description = "The API key to access phare.io. It needs read and write access to 'Uptime'.";
     };
 
     services.phare.monitors = mkOption {
@@ -97,10 +97,11 @@ in {
         types.submodule {
           options.alertPolicyId = mkOption {
             type = types.ints.positive;
-            description = "";
+            description = "The ID of the associated alert policy.";
           };
           options.name = mkOption {
             type = types.str;
+            description = "The name of the monitor";
           };
           options.protocol = mkOption {
             type = types.enum [
@@ -108,10 +109,12 @@ in {
                  "tcp"
             ];
             default = "http";
+            description = "Whether the monitor should use http of tcp to access the resource.";
           };
 
           options.request = mkOption {
             type = types.attrs;
+            description = "Monitoring request, depends of the chosen protocol.";
           };
           options.interval = mkOption {
             type = types.enum [
@@ -126,6 +129,7 @@ in {
                  "3600"
             ];
             default = "60";
+            description = "Monitoring interval in seconds.";
           };
           options.timeout = mkOption {
             type = types.enum [
@@ -145,15 +149,17 @@ in {
                  "30000"
             ];
             default = "7000";
+            description = "Monitoring timeout in milliseconds.";
           };
           options.incidentConfirmations = mkOption {
             type = types.enum [ 1 2 3 4 5 ];
             default = 1;
-
+            description = "Number of uninterrupted failed checks required to create an incident";
           };
           options.recoveryConfirmations = mkOption {
             type = types.enum [ 1 2 3 4 5 ];
             default = 1;
+            description = "Number of uninterrupted successful checks required to resolve an incident";
           };
           options.regions = mkOption {
             type = types.listOf (types.enum [
@@ -167,8 +173,8 @@ in {
                  "na-usa-pdx"
                  "na-usa-ric"
             ]);
-
             default = [ "eu-deu-muc" ];
+            description = "List of regions where monitoring checks are performed";
           };
 
         });
