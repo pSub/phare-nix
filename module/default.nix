@@ -21,6 +21,14 @@ let
       --data @-
  '';
 
+  create-monitor = pkgs.writeScript "create-monitor" ''
+    ${pkgs.curl}/bin/curl -vvvv --request POST \
+      --url https://api.phare.io/uptime/monitors \
+      --header 'Authorization: Bearer ${config.services.phare.token}' \
+      --header 'Content-Type: application/json' \
+      --data @-
+ '';
+
   update-monitors = pkgs.writeScript "update-monitors" ''
     declare -A ids=()
 
@@ -30,9 +38,13 @@ let
 
     cat ${monitors-json} | ${pkgs.jq}/bin/jq -c '.[]' | while read monitor; do
       name=$(echo "$monitor" | jq -r '.name')
-      echo "$monitor" | jq --arg m "''${ids["$name"]}" '. += {"id":$m}' \
-       | jq -f ${camelCaseToSnakeCase} \
-       | ${update-monitor} ''${ids["$name"]}
+      if [[ -v ids["$name"] ]]; then
+         echo "$monitor" | jq --arg m "''${ids["$name"]}" '. += {"id":$m}' \
+          | jq -f ${camelCaseToSnakeCase} \
+          | ${update-monitor} ''${ids["$name"]}
+       else
+         echo "$monitor" | jq -f ${camelCaseToSnakeCase} | ${create-monitor}
+       fi
     done
   '';
 
