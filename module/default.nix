@@ -4,7 +4,14 @@ with lib;
 
 let
 
-  monitors-json = pkgs.writeText "monitors.json" (builtins.toJSON config.services.phare.monitors);
+  monitors = mapAttrs (monitorName: monitorConfig:
+    let name = if monitorConfig.name != null
+      then monitorConfig.name
+      else monitorName;
+    in monitorConfig // { inherit name; }
+  ) config.services.phare.monitors;
+
+  monitors-json = pkgs.writeText "monitors.json" (builtins.toJSON monitors);
 
   list-monitors = pkgs.writeScript "list-monitors" ''
     ${pkgs.curl}/bin/curl --request GET \
@@ -14,7 +21,7 @@ let
 
   update-monitor = pkgs.writeScript "update-monitor" ''
     MONITOR_ID=$1
-    ${pkgs.curl}/bin/curl -vvvv --request POST \
+    ${pkgs.curl}/bin/curl --request POST \
       --url https://api.phare.io/uptime/monitors/"$MONITOR_ID" \
       --header 'Authorization: Bearer ${config.services.phare.token}' \
       --header 'Content-Type: application/json' \
@@ -100,8 +107,9 @@ in {
             description = "The ID of the associated alert policy.";
           };
           options.name = mkOption {
-            type = types.str;
-            description = "The name of the monitor";
+            type = types.nullOr types.str;
+            default = null;
+            description = "The name of the monitor. Defaults to attribute name in monitors.";
           };
           options.protocol = mkOption {
             type = types.enum [
