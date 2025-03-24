@@ -22,7 +22,7 @@ let
  '';
 
   create-monitor = pkgs.writeScript "create-monitor" ''
-    ${pkgs.curl}/bin/curl -vvvv --request POST \
+    ${pkgs.curl}/bin/curl --request POST \
       --url https://api.phare.io/uptime/monitors \
       --header 'Authorization: Bearer ${config.services.phare.token}' \
       --header 'Content-Type: application/json' \
@@ -48,41 +48,41 @@ let
     done
   '';
 
-  # https://gist.github.com/reegnz/5bceb53427008a4ff9367eb8eae97b85
+  # Copied from https://gist.github.com/reegnz/5bceb53427008a4ff9367eb8eae97b85
   camelCaseToSnakeCase = pkgs.writeText "camelCaseToSnakeCase" ''
-def map_keys(mapper):
-  walk(
-    if type == "object"
-    then
-      with_entries({
-        key: (.key|mapper),
-	value
-      })
-    else .
-    end
-  );
+    def map_keys(mapper):
+      walk(
+        if type == "object"
+        then
+          with_entries({
+            key: (.key|mapper),
+    	value
+          })
+        else .
+        end
+      );
 
-def camel_to_snake:
-  [
-    splits("(?=[A-Z])")
-  ]
-  |map(
-    select(. != "")
-    | ascii_downcase
-  )
-  | join("_");
+    def camel_to_snake:
+      [
+        splits("(?=[A-Z])")
+      ]
+      |map(
+        select(. != "")
+        | ascii_downcase
+      )
+      | join("_");
 
-def snake_to_camel:
-  split("_")
-  | map(
-    split("")
-    | .[0] |= ascii_upcase
-    | join("")
-  )
-  | join("");
+    def snake_to_camel:
+      split("_")
+      | map(
+        split("")
+        | .[0] |= ascii_upcase
+        | join("")
+      )
+      | join("");
 
-map_keys(camel_to_snake)
-  '';
+    map_keys(camel_to_snake)
+      '';
 
 in {
   options = {
