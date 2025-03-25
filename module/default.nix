@@ -13,13 +13,13 @@ let
 
   monitors-json = pkgs.writeText "monitors.json" (builtins.toJSON monitors);
 
-  list-monitors = pkgs.writeScript "list-monitors" ''
+  list-monitors = pkgs.writeShellScript "list-monitors" ''
     ${pkgs.curl}/bin/curl --request GET \
       --url https://api.phare.io/uptime/monitors \
       --header 'Authorization: Bearer ${config.services.phare.token}'
   '';
 
-  update-monitor = pkgs.writeScript "update-monitor" ''
+  update-monitor = pkgs.writeShellScript "update-monitor" ''
     MONITOR_ID=$1
     ${pkgs.curl}/bin/curl --request POST \
       --url https://api.phare.io/uptime/monitors/"$MONITOR_ID" \
@@ -28,7 +28,7 @@ let
       --data @-
  '';
 
-  create-monitor = pkgs.writeScript "create-monitor" ''
+  create-monitor = pkgs.writeShellScript "create-monitor" ''
     ${pkgs.curl}/bin/curl --request POST \
       --url https://api.phare.io/uptime/monitors \
       --header 'Authorization: Bearer ${config.services.phare.token}' \
@@ -36,7 +36,7 @@ let
       --data @-
  '';
 
-  update-monitors = pkgs.writeScript "update-monitors" ''
+  update-monitors = pkgs.writeShellScript "update-monitors" ''
     declare -A ids=()
 
     while IFS="=" read -r name id; do
@@ -44,13 +44,13 @@ let
     done < <(${list-monitors} | ${pkgs.jq}/bin/jq -r '.data[] | "\(.name)=\(.id)"')
 
     cat ${monitors-json} | ${pkgs.jq}/bin/jq -c '.[]' | while read monitor; do
-      name=$(echo "$monitor" | jq -r '.name')
+      name=$(echo "$monitor" | ${pkgs.jq}/bin/jq -r '.name')
       if [[ -v ids["$name"] ]]; then
-         echo "$monitor" | jq --arg m "''${ids["$name"]}" '. += {"id":$m}' \
-          | jq -f ${camelCaseToSnakeCase} \
+         echo "$monitor" | ${pkgs.jq}/bin/jq --arg m "''${ids["$name"]}" '. += {"id":$m}' \
+          | ${pkgs.jq}/bin/jq -f ${camelCaseToSnakeCase} \
           | ${update-monitor} ''${ids["$name"]}
        else
-         echo "$monitor" | jq -f ${camelCaseToSnakeCase} | ${create-monitor}
+         echo "$monitor" | ${pkgs.jq}/bin/jq -f ${camelCaseToSnakeCase} | ${create-monitor}
        fi
     done
   '';
@@ -193,7 +193,7 @@ in {
     systemd.services."create-phare-monitors" = {
       description = "";
       serviceConfig = {
-        ExecStart = "${list-monitors} | ${update-monitors}";
+        ExecStart = "${update-monitors}";
         Type = "oneshot";
       };
     };
