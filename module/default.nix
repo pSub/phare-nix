@@ -190,12 +190,8 @@ in {
   };
 
   config = {
-    systemd.services."create-phare-monitors" = {
-      description = "";
-      serviceConfig = {
-        ExecStart = "${update-monitors}";
-        Type = "oneshot";
-      };
+    system.userActivationScripts = {
+      update-phare-monitors = "${update-monitors}";
     };
   };
 
