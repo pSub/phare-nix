@@ -14,24 +14,27 @@ let
   monitors-json = pkgs.writeText "monitors.json" (builtins.toJSON monitors);
 
   list-monitors = pkgs.writeShellScript "list-monitors" ''
+    TOKEN=$(cat ${config.services.phare.tokenFile})
     ${pkgs.curl}/bin/curl --request GET \
       --url https://api.phare.io/uptime/monitors \
-      --header 'Authorization: Bearer ${config.services.phare.token}'
+      --header "Authorization: Bearer $TOKEN"
   '';
 
   update-monitor = pkgs.writeShellScript "update-monitor" ''
     MONITOR_ID=$1
+    TOKEN=$(cat ${config.services.phare.tokenFile})
     ${pkgs.curl}/bin/curl --request POST \
       --url https://api.phare.io/uptime/monitors/"$MONITOR_ID" \
-      --header 'Authorization: Bearer ${config.services.phare.token}' \
+      --header "Authorization: Bearer $TOKEN" \
       --header 'Content-Type: application/json' \
       --data @-
  '';
 
   create-monitor = pkgs.writeShellScript "create-monitor" ''
+    TOKEN=$(cat ${config.services.phare.tokenFile})
     ${pkgs.curl}/bin/curl --request POST \
       --url https://api.phare.io/uptime/monitors \
-      --header 'Authorization: Bearer ${config.services.phare.token}' \
+      --header "Authorization: Bearer $TOKEN" \
       --header 'Content-Type: application/json' \
       --data @-
  '';
@@ -94,10 +97,11 @@ let
 in {
   options = {
     services.phare.enable = mkEnableOption "Whether to enable phare.io management";
-    services.phare.token = mkOption {
+
+    services.phare.tokenFile = mkOption {
       type = types.str;
       default = null;
-      description = "The API key to access phare.io. It needs read and write access to 'Uptime'.";
+      description = "Path to a file with the API key to access phare.io. It needs read and write access to 'Uptime'.";
     };
 
     services.phare.monitors = mkOption {
