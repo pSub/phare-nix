@@ -93,6 +93,7 @@ let
 
 in {
   options = {
+    services.phare.enable = mkEnableOption "Whether to enable phare.io management";
     services.phare.token = mkOption {
       type = types.str;
       default = null;
@@ -189,7 +190,7 @@ in {
       };
   };
 
-  config = {
+  config = mkIf config.services.phare.enable {
     system.userActivationScripts = {
       update-phare-monitors = "${update-monitors}";
     };
