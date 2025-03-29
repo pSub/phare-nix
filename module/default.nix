@@ -28,7 +28,7 @@ let
       --header "Authorization: Bearer $TOKEN" \
       --header 'Content-Type: application/json' \
       --data @-
- '';
+  '';
 
   create-monitor = pkgs.writeShellScript "create-monitor" ''
     TOKEN=$(cat ${config.services.phare.tokenFile})
@@ -37,24 +37,56 @@ let
       --header "Authorization: Bearer $TOKEN" \
       --header 'Content-Type: application/json' \
       --data @-
- '';
+  '';
+
+  pause-monitor = pkgs.writeShellScript "pause-monitor" ''
+    MONITOR_ID=$1
+    TOKEN=$(cat ${config.services.phare.tokenFile})
+    ${pkgs.curl}/bin/curl --request POST \
+      --url https://api.phare.io/uptime/monitors/"$MONITOR_ID"/pause \
+      --header "Authorization: Bearer $TOKEN"
+  '';
+
+  resume-monitor = pkgs.writeShellScript "resume-monitor" ''
+    MONITOR_ID=$1
+    TOKEN=$(cat ${config.services.phare.tokenFile})
+    ${pkgs.curl}/bin/curl --request POST \
+      --url https://api.phare.io/uptime/monitors/"$MONITOR_ID"/resume \
+      --header "Authorization: Bearer $TOKEN"
+  '';
+
 
   update-monitors = pkgs.writeShellScript "update-monitors" ''
     declare -A ids=()
+    declare -A status=()
 
-    while IFS="=" read -r name id; do
+    while IFS="=" read -r name id paused; do
       ids["$name"]="$id"
-    done < <(${list-monitors} | ${pkgs.jq}/bin/jq -r '.data[] | "\(.name)=\(.id)"')
+      status["$name"]="$paused"
+    done < <(${list-monitors} | ${pkgs.jq}/bin/jq -r '.data[] | "\(.name)=\(.id)=\(.paused)"')
 
-    cat ${monitors-json} | ${pkgs.jq}/bin/jq -c '.[]' | while read monitor; do
+    while read monitor; do
       name=$(echo "$monitor" | ${pkgs.jq}/bin/jq -r '.name')
       if [[ -v ids["$name"] ]]; then
+
+          if [[ "''${status[$name]}" == "true" ]]; then
+            ${resume-monitor} ''${ids["$name"]}
+          fi
+
          echo "$monitor" | ${pkgs.jq}/bin/jq --arg m "''${ids["$name"]}" '. += {"id":$m}' \
           | ${pkgs.jq}/bin/jq -f ${camelCaseToSnakeCase} \
           | ${update-monitor} ''${ids["$name"]}
+
+          unset ids["$name"]
        else
          echo "$monitor" | ${pkgs.jq}/bin/jq -f ${camelCaseToSnakeCase} | ${create-monitor}
        fi
+    done < <(cat ${monitors-json} | ${pkgs.jq}/bin/jq -c '.[]')
+
+    for name in "''${!ids[@]}"; do
+      if [[ "''${status[$name]}" -ne "true" ]]; then
+         ${pause-monitor} "''${ids[$name]}"
+      fi
     done
   '';
 
