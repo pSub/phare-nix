@@ -265,6 +265,7 @@ in {
 
     services.phare.monitors = mkOption {
       type = types.attrsOf (types.submodule { inherit options; } );
+      default = { };
     };
 
     services.nginx.virtualHosts =  mkOption {
