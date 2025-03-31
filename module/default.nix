@@ -4,14 +4,32 @@ with lib;
 
 let
 
-  monitors = mapAttrs (monitorName: monitorConfig:
+  standaloneMonitors = mapAttrs (monitorName: monitorConfig:
     let name = if monitorConfig.name != null
       then monitorConfig.name
       else monitorName;
     in monitorConfig // { inherit name; }
   ) config.services.phare.monitors;
 
+
+  nginxMonitors = mapAttrs (virtualHost: vhc: let
+      name = if vhc.phare.name != null
+             then vhc.phare.name
+             else virtualHost;
+      request = if vhc.phare.request != null
+        then vhc.phare.request
+        else {
+          method = "GET";
+          url = (if vhc.forceSSL then "https" else "http") + "://" +  virtualHost;
+        };
+    in vhc.phare // { inherit name request; }
+  ) config.services.nginx.virtualHosts;
+
+  monitors = standaloneMonitors // nginxMonitors;
+
   monitors-json = pkgs.writeText "monitors.json" (builtins.toJSON monitors);
+
+  nginx-monitors-json = pkgs.writeText "nginx-monitors.json" (builtins.toJSON nginxMonitors);
 
   list-monitors = pkgs.writeShellScript "list-monitors" ''
     TOKEN=$(cat ${config.services.phare.tokenFile})
@@ -78,13 +96,16 @@ let
           | ${update-monitor} ''${ids["$name"]}
 
           unset ids["$name"]
+
        else
+
          echo "$monitor" | ${pkgs.jq}/bin/jq -f ${camelCaseToSnakeCase} | ${create-monitor}
        fi
     done < <(cat ${monitors-json} | ${pkgs.jq}/bin/jq -c '.[]')
 
     for name in "''${!ids[@]}"; do
-      if [[ "''${status[$name]}" -ne "true" ]]; then
+      echo $name
+      if [[ "''${status[$name]}" != "true" ]]; then
          ${pause-monitor} "''${ids[$name]}"
       fi
     done
@@ -126,6 +147,92 @@ let
     map_keys(camel_to_snake)
       '';
 
+  options = {
+    alertPolicyId = mkOption {
+      type = types.ints.positive;
+      description = "The ID of the associated alert policy.";
+    };
+    name = mkOption {
+      type = types.nullOr types.str;
+      default = null;
+      description = "The name of the monitor. Defaults to attribute name in monitors.";
+    };
+    protocol = mkOption {
+      type = types.enum [
+           "http"
+           "tcp"
+      ];
+      default = "http";
+      description = "Whether the monitor should use http of tcp to access the resource.";
+    };
+
+    request = mkOption {
+      type = types.nullOr types.attrs;
+      default = null;
+      description = "Monitoring request, depends of the chosen protocol.";
+    };
+    interval = mkOption {
+      type = types.enum [
+           "30"
+           "60"
+           "120"
+           "180"
+           "300"
+           "600"
+           "900"
+           "1800"
+           "3600"
+      ];
+      default = "60";
+      description = "Monitoring interval in seconds.";
+    };
+    timeout = mkOption {
+      type = types.enum [
+           "1000"
+           "2000"
+           "3000"
+           "4000"
+           "5000"
+           "6000"
+           "7000"
+           "8000"
+           "9000"
+           "10000"
+           "15000"
+           "20000"
+           "25000"
+           "30000"
+      ];
+      default = "7000";
+      description = "Monitoring timeout in milliseconds.";
+    };
+    incidentConfirmations = mkOption {
+      type = types.enum [ 1 2 3 4 5 ];
+      default = 1;
+      description = "Number of uninterrupted failed checks required to create an incident";
+    };
+    recoveryConfirmations = mkOption {
+      type = types.enum [ 1 2 3 4 5 ];
+      default = 1;
+      description = "Number of uninterrupted successful checks required to resolve an incident";
+    };
+    regions = mkOption {
+      type = types.listOf (types.enum [
+           "as-ind-bom"
+           "as-jpn-nrt"
+           "as-sgp-sin"
+           "eu-deu-muc"
+           "eu-gbr-lhr"
+           "eu-swe-arn"
+           "na-mex-mex"
+           "na-usa-pdx"
+           "na-usa-ric"
+      ]);
+      default = [ "eu-deu-muc" ];
+      description = "List of regions where monitoring checks are performed";
+    };
+  };
+
 in {
   options = {
     services.phare.enable = mkEnableOption "Whether to enable phare.io management";
@@ -137,93 +244,12 @@ in {
     };
 
     services.phare.monitors = mkOption {
-      type = types.attrsOf (
-        types.submodule {
-          options.alertPolicyId = mkOption {
-            type = types.ints.positive;
-            description = "The ID of the associated alert policy.";
-          };
-          options.name = mkOption {
-            type = types.nullOr types.str;
-            default = null;
-            description = "The name of the monitor. Defaults to attribute name in monitors.";
-          };
-          options.protocol = mkOption {
-            type = types.enum [
-                 "http"
-                 "tcp"
-            ];
-            default = "http";
-            description = "Whether the monitor should use http of tcp to access the resource.";
-          };
+      type = types.attrsOf (types.submodule { inherit options; } );
+    };
 
-          options.request = mkOption {
-            type = types.attrs;
-            description = "Monitoring request, depends of the chosen protocol.";
-          };
-          options.interval = mkOption {
-            type = types.enum [
-                 "30"
-                 "60"
-                 "120"
-                 "180"
-                 "300"
-                 "600"
-                 "900"
-                 "1800"
-                 "3600"
-            ];
-            default = "60";
-            description = "Monitoring interval in seconds.";
-          };
-          options.timeout = mkOption {
-            type = types.enum [
-                 "1000"
-                 "2000"
-                 "3000"
-                 "4000"
-                 "5000"
-                 "6000"
-                 "7000"
-                 "8000"
-                 "9000"
-                 "10000"
-                 "15000"
-                 "20000"
-                 "25000"
-                 "30000"
-            ];
-            default = "7000";
-            description = "Monitoring timeout in milliseconds.";
-          };
-          options.incidentConfirmations = mkOption {
-            type = types.enum [ 1 2 3 4 5 ];
-            default = 1;
-            description = "Number of uninterrupted failed checks required to create an incident";
-          };
-          options.recoveryConfirmations = mkOption {
-            type = types.enum [ 1 2 3 4 5 ];
-            default = 1;
-            description = "Number of uninterrupted successful checks required to resolve an incident";
-          };
-          options.regions = mkOption {
-            type = types.listOf (types.enum [
-                 "as-ind-bom"
-                 "as-jpn-nrt"
-                 "as-sgp-sin"
-                 "eu-deu-muc"
-                 "eu-gbr-lhr"
-                 "eu-swe-arn"
-                 "na-mex-mex"
-                 "na-usa-pdx"
-                 "na-usa-ric"
-            ]);
-            default = [ "eu-deu-muc" ];
-            description = "List of regions where monitoring checks are performed";
-          };
-
-        });
-      };
+    services.nginx.virtualHosts =  mkOption {
+      type = types.attrsOf (types.submodule { options.phare = options; } );
+    };
   };
 
   config = mkIf config.services.phare.enable {
