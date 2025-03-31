@@ -23,7 +23,7 @@ let
           url = (if vhc.forceSSL then "https" else "http") + "://" +  virtualHost;
         };
     in vhc.phare // { inherit name request; }
-  ) config.services.nginx.virtualHosts;
+  ) (filterAttrs ( _: vhc: vhc.enablePhare) config.services.nginx.virtualHosts);
 
   monitors = standaloneMonitors // nginxMonitors;
 
@@ -261,7 +261,10 @@ in {
     };
 
     services.nginx.virtualHosts =  mkOption {
-      type = types.attrsOf (types.submodule { options.phare = options; } );
+      type = types.attrsOf (types.submodule {
+        options.enablePhare = mkEnableOption "Whether to enable phare.io management for the virtualhost";
+        options.phare = options;
+      } );
     };
   };
 
