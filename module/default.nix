@@ -104,7 +104,6 @@ let
     done < <(cat ${monitors-json} | ${pkgs.jq}/bin/jq -c '.[]')
 
     for name in "''${!ids[@]}"; do
-      echo $name
       if [[ "''${status[$name]}" != "true" ]]; then
          ${pause-monitor} "''${ids[$name]}"
       fi
@@ -147,9 +146,22 @@ let
     map_keys(camel_to_snake)
       '';
 
+  regionType = types.listOf (types.enum [
+           "as-ind-bom"
+           "as-jpn-nrt"
+           "as-sgp-sin"
+           "eu-deu-muc"
+           "eu-gbr-lhr"
+           "eu-swe-arn"
+           "na-mex-mex"
+           "na-usa-pdx"
+           "na-usa-ric"
+      ]);
+
   options = {
     alertPolicyId = mkOption {
       type = types.ints.positive;
+      default = config.services.phare.alertPolicyId;
       description = "The ID of the associated alert policy.";
     };
     name = mkOption {
@@ -217,18 +229,8 @@ let
       description = "Number of uninterrupted successful checks required to resolve an incident";
     };
     regions = mkOption {
-      type = types.listOf (types.enum [
-           "as-ind-bom"
-           "as-jpn-nrt"
-           "as-sgp-sin"
-           "eu-deu-muc"
-           "eu-gbr-lhr"
-           "eu-swe-arn"
-           "na-mex-mex"
-           "na-usa-pdx"
-           "na-usa-ric"
-      ]);
-      default = [ "eu-deu-muc" ];
+      type = regionType;
+      default = config.services.phare.regions;
       description = "List of regions where monitoring checks are performed";
     };
   };
@@ -241,6 +243,17 @@ in {
       type = types.str;
       default = null;
       description = "Path to a file with the API key to access phare.io. It needs read and write access to 'Uptime'.";
+    };
+
+    services.phare.alertPolicyId = mkOption {
+      type = types.ints.positive;
+      description = "The ID of the associated alert policy.";
+    };
+
+    services.phare.regions = mkOption {
+      type = regionType;
+      default = [ "eu-deu-muc" "eu-swe-arn" ];
+      description = "List of regions where monitoring checks are performed";
     };
 
     services.phare.monitors = mkOption {
