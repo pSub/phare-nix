@@ -156,6 +156,13 @@ let
            "na-mex-mex"
            "na-usa-pdx"
            "na-usa-ric"
+
+           "as-jpn-hnd"
+           "eu-deu-fra"
+           "na-usa-iad"
+           "na-usa-sea"
+           "oc-aus-syd"
+           "sa-bra-gru"
       ]);
 
   options = {
