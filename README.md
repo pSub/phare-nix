@@ -34,7 +34,8 @@ basic flake with phare-nix cloud look like this:
 
 ## Usage
 
-The following code snippet demonstrates how you can use the `phare-nix` module.
+The following code snippet demonstrates how you can use the `phare-nix` module in
+your configuration.
 
 ``` nix
 services.phare = {
@@ -46,7 +47,7 @@ services.phare = {
     # the attribute sets for this option are converted to JSON and send to the phare.io
     # API, therefor you can use all fields provided by the phare.io API.
     monitors = {
-        tcp-monitor = {
+        tcp-monitor = { # name of the monitor
             protocol = "tcp";
             request = {
                 host = "example.org";
@@ -79,6 +80,17 @@ services.nginx.virtualHosts."example.org" = {
     };
 };
 ```
+
+Once you rebuild your system (eg. with `nixos-rebuiold`) the configuration of the monitors is
+applied in the (user-) activation phase to phare.io. Depending on the state of phare.io different
+actions are performed:
+
+- If there is a monitor in your configuration but not on phare.io, then the monitor created on phare.io.
+- If there is a monitor in your configuration and on phare.io, then the monitor is updated on phare.io.
+- If there is a monitor in your configuration but paused on phare.io, then the monitor is resumed on phare.io.
+- If there is a monitor on phare.io but not in your configuration, then the monitor is paused on phare.io.
+
+The test on wheter there is a monitor on phare.io or not is done using the name of the monitor.
 
 You can find the phare.io API documentation at https://docs.phare.io/api-reference/introduction.
 
