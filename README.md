@@ -46,6 +46,8 @@ services.phare = {
 
     # the attribute sets for this option are converted to JSON and send to the phare.io
     # API, therefor you can use all fields provided by the phare.io API.
+    # Note: The Nix option names are in camel case and are converted to snake case before
+    # they are sent to phare.io.
     monitors = {
         tcp-monitor = { # name of the monitor
             protocol = "tcp";
