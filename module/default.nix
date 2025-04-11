@@ -147,15 +147,14 @@ let
       '';
 
   regionType = types.listOf (types.enum [
-           "as-ind-bom"
-           "as-jpn-nrt"
+           "as-jpn-hnd"
            "as-sgp-sin"
-           "eu-deu-muc"
+           "eu-deu-fra"
            "eu-gbr-lhr"
            "eu-swe-arn"
            "na-mex-mex"
-           "na-usa-pdx"
-           "na-usa-ric"
+           "na-usa-sea"
+           "na-usa-iad"
 
            "as-jpn-hnd"
            "eu-deu-fra"
