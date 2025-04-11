@@ -84,8 +84,7 @@ services.nginx.virtualHosts."example.org" = {
 ```
 
 Once you rebuild your system (eg. with `nixos-rebuiold`) the configuration of the monitors is
-applied in the (user-) activation phase to phare.io. Depending on the state of phare.io different
-actions are performed:
+applied by a systemd service to phare.io. Depending on the state of phare.io different actions are performed:
 
 - If there is a monitor in your configuration but not on phare.io, then the monitor created on phare.io.
 - If there is a monitor in your configuration and on phare.io, then the monitor is updated on phare.io.
