@@ -31,9 +31,11 @@ let
 
   nginx-monitors-json = pkgs.writeText "nginx-monitors.json" (builtins.toJSON nginxMonitors);
 
+  curl = "${pkgs.curl}/bin/curl --silent";
+
   list-monitors = pkgs.writeShellScript "list-monitors" ''
     TOKEN=$(cat ${config.services.phare.tokenFile})
-    ${pkgs.curl}/bin/curl --request GET \
+    ${curl} --request GET \
       --url https://api.phare.io/uptime/monitors \
       --header "Authorization: Bearer $TOKEN"
   '';
@@ -41,26 +43,26 @@ let
   update-monitor = pkgs.writeShellScript "update-monitor" ''
     MONITOR_ID=$1
     TOKEN=$(cat ${config.services.phare.tokenFile})
-    ${pkgs.curl}/bin/curl --request POST \
+    ${curl} --request POST \
       --url https://api.phare.io/uptime/monitors/"$MONITOR_ID" \
       --header "Authorization: Bearer $TOKEN" \
       --header 'Content-Type: application/json' \
-      --data @-
+      --data @- > /dev/null
   '';
 
   create-monitor = pkgs.writeShellScript "create-monitor" ''
     TOKEN=$(cat ${config.services.phare.tokenFile})
-    ${pkgs.curl}/bin/curl --request POST \
+    ${curl} --request POST \
       --url https://api.phare.io/uptime/monitors \
       --header "Authorization: Bearer $TOKEN" \
       --header 'Content-Type: application/json' \
-      --data @-
+      --data @- > /dev/null
   '';
 
   pause-monitor = pkgs.writeShellScript "pause-monitor" ''
     MONITOR_ID=$1
     TOKEN=$(cat ${config.services.phare.tokenFile})
-    ${pkgs.curl}/bin/curl --request POST \
+    ${curl} --request POST \
       --url https://api.phare.io/uptime/monitors/"$MONITOR_ID"/pause \
       --header "Authorization: Bearer $TOKEN"
   '';
@@ -68,7 +70,7 @@ let
   resume-monitor = pkgs.writeShellScript "resume-monitor" ''
     MONITOR_ID=$1
     TOKEN=$(cat ${config.services.phare.tokenFile})
-    ${pkgs.curl}/bin/curl --request POST \
+    ${curl} --request POST \
       --url https://api.phare.io/uptime/monitors/"$MONITOR_ID"/resume \
       --header "Authorization: Bearer $TOKEN"
   '';
