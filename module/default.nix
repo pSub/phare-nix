@@ -276,9 +276,21 @@ in {
   };
 
   config = mkIf config.services.phare.enable {
-    system.userActivationScripts = {
-      update-phare-monitors = "${update-monitors}";
+    systemd.services.phare-monitors = {
+      description = "Apply the phare monitor config";
+      wantedBy = [ "multi-user.target" ];
+      wants = [ "network-online.target" ];
+      after = [ "network-online.target" ];
+
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = "${update-monitors}";
+        RemainAfterExit = "yes";
+        TimeoutSec = "infinity";
+        StandardOutput = "journal+console";
+      };
     };
+    
   };
 
 }
