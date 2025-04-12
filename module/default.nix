@@ -31,7 +31,7 @@ let
 
   nginx-monitors-json = pkgs.writeText "nginx-monitors.json" (builtins.toJSON nginxMonitors);
 
-  curl = "${pkgs.curl}/bin/curl --silent";
+  curl = "${pkgs.curl}/bin/curl --fail --silent";
 
   list-monitors = pkgs.writeShellScript "list-monitors" ''
     TOKEN=$(cat ${config.services.phare.tokenFile})
@@ -77,13 +77,22 @@ let
 
 
   update-monitors = pkgs.writeShellScript "update-monitors" ''
+    set -e
     declare -A ids=()
     declare -A status=()
+    declare -A jsons=()
+
+    upstream=$(${list-monitors})
 
     while IFS="=" read -r name id paused; do
       ids["$name"]="$id"
       status["$name"]="$paused"
-    done < <(${list-monitors} | ${pkgs.jq}/bin/jq -r '.data[] | "\(.name)=\(.id)=\(.paused)"')
+    done < <(echo "$upstream" | ${pkgs.jq}/bin/jq -r '.data[] | "\(.name)=\(.id)=\(.paused)"')
+
+    while read json; do
+      name=$(echo "$json" |${pkgs.jq}/bin/jq -r '.name')
+      jsons["$name"]="$json"
+    done < <(echo "$upstream" | ${pkgs.jq}/bin/jq -r -c '.data[]')
 
     while read monitor; do
       name=$(echo "$monitor" | ${pkgs.jq}/bin/jq -r '.name')
@@ -93,6 +102,8 @@ let
           echo "Resuming monitor ''${ids["$name"]}"
           ${resume-monitor} ''${ids["$name"]}
         fi
+
+        echo "''${jsons["$name"]}"
 
         echo "Updating monitor ''${ids["$name"]}"
         echo "$monitor" | ${pkgs.jq}/bin/jq --arg m "''${ids["$name"]}" '. += {"id":$m}' \
