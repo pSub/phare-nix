@@ -31,9 +31,11 @@ let
 
   nginx-monitors-json = pkgs.writeText "nginx-monitors.json" (builtins.toJSON nginxMonitors);
 
+  curl = "${pkgs.curl}/bin/curl --silent";
+
   list-monitors = pkgs.writeShellScript "list-monitors" ''
     TOKEN=$(cat ${config.services.phare.tokenFile})
-    ${pkgs.curl}/bin/curl --request GET \
+    ${curl} --request GET \
       --url https://api.phare.io/uptime/monitors \
       --header "Authorization: Bearer $TOKEN"
   '';
@@ -41,26 +43,26 @@ let
   update-monitor = pkgs.writeShellScript "update-monitor" ''
     MONITOR_ID=$1
     TOKEN=$(cat ${config.services.phare.tokenFile})
-    ${pkgs.curl}/bin/curl --request POST \
+    ${curl} --request POST \
       --url https://api.phare.io/uptime/monitors/"$MONITOR_ID" \
       --header "Authorization: Bearer $TOKEN" \
       --header 'Content-Type: application/json' \
-      --data @-
+      --data @- > /dev/null
   '';
 
   create-monitor = pkgs.writeShellScript "create-monitor" ''
     TOKEN=$(cat ${config.services.phare.tokenFile})
-    ${pkgs.curl}/bin/curl --request POST \
+    ${curl} --request POST \
       --url https://api.phare.io/uptime/monitors \
       --header "Authorization: Bearer $TOKEN" \
       --header 'Content-Type: application/json' \
-      --data @-
+      --data @- > /dev/null
   '';
 
   pause-monitor = pkgs.writeShellScript "pause-monitor" ''
     MONITOR_ID=$1
     TOKEN=$(cat ${config.services.phare.tokenFile})
-    ${pkgs.curl}/bin/curl --request POST \
+    ${curl} --request POST \
       --url https://api.phare.io/uptime/monitors/"$MONITOR_ID"/pause \
       --header "Authorization: Bearer $TOKEN"
   '';
@@ -68,7 +70,7 @@ let
   resume-monitor = pkgs.writeShellScript "resume-monitor" ''
     MONITOR_ID=$1
     TOKEN=$(cat ${config.services.phare.tokenFile})
-    ${pkgs.curl}/bin/curl --request POST \
+    ${curl} --request POST \
       --url https://api.phare.io/uptime/monitors/"$MONITOR_ID"/resume \
       --header "Authorization: Bearer $TOKEN"
   '';
@@ -87,25 +89,28 @@ let
       name=$(echo "$monitor" | ${pkgs.jq}/bin/jq -r '.name')
       if [[ -v ids["$name"] ]]; then
 
-          if [[ "''${status[$name]}" == "true" ]]; then
-            ${resume-monitor} ''${ids["$name"]}
-          fi
+        if [[ "''${status[$name]}" == "true" ]]; then
+          echo "Resuming monitor ''${ids["$name"]}"
+          ${resume-monitor} ''${ids["$name"]}
+        fi
 
-         echo "$monitor" | ${pkgs.jq}/bin/jq --arg m "''${ids["$name"]}" '. += {"id":$m}' \
-          | ${pkgs.jq}/bin/jq -f ${camelCaseToSnakeCase} \
-          | ${update-monitor} ''${ids["$name"]}
+        echo "Updating monitor ''${ids["$name"]}"
+        echo "$monitor" | ${pkgs.jq}/bin/jq --arg m "''${ids["$name"]}" '. += {"id":$m}' \
+         | ${pkgs.jq}/bin/jq -f ${camelCaseToSnakeCase} \
+         | ${update-monitor} ''${ids["$name"]}
 
-          unset ids["$name"]
+        unset ids["$name"]
 
        else
-
-         echo "$monitor" | ${pkgs.jq}/bin/jq -f ${camelCaseToSnakeCase} | ${create-monitor}
+        echo "Creating monitor with name $name"
+        echo "$monitor" | ${pkgs.jq}/bin/jq -f ${camelCaseToSnakeCase} | ${create-monitor}
        fi
     done < <(cat ${monitors-json} | ${pkgs.jq}/bin/jq -c '.[]')
 
     for name in "''${!ids[@]}"; do
       if [[ "''${status[$name]}" != "true" ]]; then
-         ${pause-monitor} "''${ids[$name]}"
+        echo "Pausing monitor ''${ids["$name"]}"
+        ${pause-monitor} "''${ids[$name]}"
       fi
     done
   '';
@@ -147,15 +152,14 @@ let
       '';
 
   regionType = types.listOf (types.enum [
-           "as-ind-bom"
-           "as-jpn-nrt"
+           "as-jpn-hnd"
            "as-sgp-sin"
-           "eu-deu-muc"
+           "eu-deu-fra"
            "eu-gbr-lhr"
            "eu-swe-arn"
            "na-mex-mex"
-           "na-usa-pdx"
-           "na-usa-ric"
+           "na-usa-sea"
+           "na-usa-iad"
 
            "as-jpn-hnd"
            "eu-deu-fra"
@@ -277,9 +281,21 @@ in {
   };
 
   config = mkIf config.services.phare.enable {
-    system.userActivationScripts = {
-      update-phare-monitors = "${update-monitors}";
+    systemd.services.phare-monitors = {
+      description = "Apply the phare monitor config";
+      wantedBy = [ "multi-user.target" ];
+      wants = [ "network-online.target" ];
+      after = [ "network-online.target" ];
+
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = "${update-monitors}";
+        RemainAfterExit = "yes";
+        TimeoutSec = "infinity";
+        StandardOutput = "journal+console";
+      };
     };
+    
   };
 
 }
