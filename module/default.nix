@@ -196,37 +196,37 @@ let
     };
     interval = mkOption {
       type = types.enum [
-           "30"
-           "60"
-           "120"
-           "180"
-           "300"
-           "600"
-           "900"
-           "1800"
-           "3600"
+           30
+           60
+           120
+           180
+           300
+           600
+           900
+           1800
+           3600
       ];
-      default = "60";
+      default = 60;
       description = "Monitoring interval in seconds.";
     };
     timeout = mkOption {
       type = types.enum [
-           "1000"
-           "2000"
-           "3000"
-           "4000"
-           "5000"
-           "6000"
-           "7000"
-           "8000"
-           "9000"
-           "10000"
-           "15000"
-           "20000"
-           "25000"
-           "30000"
+           1000
+           2000
+           3000
+           4000
+           5000
+           6000
+           7000
+           8000
+           9000
+           10000
+           15000
+           20000
+           25000
+           30000
       ];
-      default = "7000";
+      default = 7000;
       description = "Monitoring timeout in milliseconds.";
     };
     incidentConfirmations = mkOption {
