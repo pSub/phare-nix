@@ -77,10 +77,11 @@ let
 
 
   update-monitors = pkgs.writeShellScript "update-monitors" ''
-    set -e
     declare -A ids=()
     declare -A status=()
     declare -A jsons=()
+
+    ignore=".id, .response_time, .response_time, .updated_at, .created_at, .paused, .status"
 
     upstream=$(${list-monitors})
 
@@ -103,12 +104,27 @@ let
           ${resume-monitor} ''${ids["$name"]}
         fi
 
-        echo "''${jsons["$name"]}"
+        echo "$monitor" | ${pkgs.jq}/bin/jq -e 'has(".project_id")' &> /dev/null
+        if [[ $? -ne 0 ]]; then
+          ignore+=", .project_id"
+        fi
 
-        echo "Updating monitor ''${ids["$name"]}"
-        echo "$monitor" | ${pkgs.jq}/bin/jq --arg m "''${ids["$name"]}" '. += {"id":$m}' \
-         | ${pkgs.jq}/bin/jq -f ${camelCaseToSnakeCase} \
-         | ${update-monitor} ''${ids["$name"]}
+        echo "$monitor" | ${pkgs.jq}/bin/jq -e 'has(".request.keyword")' &> /dev/null
+        if [[ $? -ne 0 ]]; then
+          ignore+=", .request.keyword"
+        fi
+
+        ${pkgs.diffutils}/bin/diff &> /dev/null <(echo "''${jsons["$name"]}" | ${pkgs.jq}/bin/jq --sort-keys "del($ignore)") \
+             <(echo "$monitor" | ${pkgs.jq}/bin/jq --sort-keys -f ${camelCaseToSnakeCase}) 
+
+        if [[ $? -ne 0 ]]; then
+          echo "Updating monitor ''${ids["$name"]}"
+          echo "$monitor" | ${pkgs.jq}/bin/jq --arg m "''${ids["$name"]}" '. += {"id":$m}' \
+            | ${pkgs.jq}/bin/jq -f ${camelCaseToSnakeCase} \
+            | ${update-monitor} ''${ids["$name"]}
+        else
+          echo "Monitor $name is up-to-date with phare.io"
+        fi
 
         unset ids["$name"]
 
