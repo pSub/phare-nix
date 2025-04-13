@@ -100,7 +100,7 @@ let
       if [[ -v ids["$name"] ]]; then
 
         if [[ "''${status[$name]}" == "true" ]]; then
-          echo "Resuming monitor ''${ids["$name"]}"
+          echo "Resuming monitor $name"
           ${resume-monitor} ''${ids["$name"]}
         fi
 
@@ -118,7 +118,7 @@ let
              <(echo "$monitor" | ${pkgs.jq}/bin/jq --sort-keys -f ${camelCaseToSnakeCase}) 
 
         if [[ $? -ne 0 ]]; then
-          echo "Updating monitor ''${ids["$name"]}"
+          echo "Updating monitor $name"
           echo "$monitor" | ${pkgs.jq}/bin/jq --arg m "''${ids["$name"]}" '. += {"id":$m}' \
             | ${pkgs.jq}/bin/jq -f ${camelCaseToSnakeCase} \
             | ${update-monitor} ''${ids["$name"]}
@@ -136,7 +136,7 @@ let
 
     for name in "''${!ids[@]}"; do
       if [[ "''${status[$name]}" != "true" ]]; then
-        echo "Pausing monitor ''${ids["$name"]}"
+        echo "Pausing monitor $name"
         ${pause-monitor} "''${ids[$name]}"
       fi
     done
