@@ -85,18 +85,16 @@ let
 
     upstream=$(${list-monitors})
 
-    while IFS="=" read -r name id paused; do
+    while read json; do
+      IFS=$'\t' read name id paused < <(${pkgs.jq}/bin/jq -r '[.name, .id, .paused] | @tsv' <<< "$json")
+
       ids["$name"]="$id"
       status["$name"]="$paused"
-    done < <(echo "$upstream" | ${pkgs.jq}/bin/jq -r '.data[] | "\(.name)=\(.id)=\(.paused)"')
-
-    while read json; do
-      name=$(echo "$json" |${pkgs.jq}/bin/jq -r '.name')
       jsons["$name"]="$json"
-    done < <(echo "$upstream" | ${pkgs.jq}/bin/jq -r -c '.data[]')
+    done < <(${pkgs.jq}/bin/jq -r -c '.data[]' <<< "$upstream")
 
     while read monitor; do
-      name=$(echo "$monitor" | ${pkgs.jq}/bin/jq -r '.name')
+      name=$(${pkgs.jq}/bin/jq -r '.name' <<< "$monitor")
       if [[ -v ids["$name"] ]]; then
 
         if [[ "''${status[$name]}" == "true" ]]; then
@@ -104,23 +102,24 @@ let
           ${resume-monitor} ''${ids["$name"]}
         fi
 
-        echo "$monitor" | ${pkgs.jq}/bin/jq -e 'has(".project_id")' &> /dev/null
+        ${pkgs.jq}/bin/jq -e 'has(".project_id")' <<< "$monitor" &> /dev/null
         if [[ $? -ne 0 ]]; then
           ignore+=", .project_id"
         fi
 
-        echo "$monitor" | ${pkgs.jq}/bin/jq -e 'has(".request.keyword")' &> /dev/null
+        ${pkgs.jq}/bin/jq -e 'has(".request.keyword")' <<< "$monitor" &> /dev/null
         if [[ $? -ne 0 ]]; then
           ignore+=", .request.keyword"
         fi
 
-        ${pkgs.diffutils}/bin/diff &> /dev/null <(echo "''${jsons["$name"]}" | ${pkgs.jq}/bin/jq --sort-keys "del($ignore)") \
-             <(echo "$monitor" | ${pkgs.jq}/bin/jq --sort-keys -f ${camelCaseToSnakeCase}) 
+        monitorSnakeCase=$(${pkgs.jq}/bin/jq --sort-keys -f ${camelCaseToSnakeCase} <<< "$monitor")
+
+        ${pkgs.diffutils}/bin/diff &> /dev/null <(${pkgs.jq}/bin/jq --sort-keys "del($ignore)" <<< "''${jsons["$name"]}") \
+             <(echo "$monitorSnakeCase") 
 
         if [[ $? -ne 0 ]]; then
           echo "Updating monitor $name"
-          echo "$monitor" | ${pkgs.jq}/bin/jq --arg m "''${ids["$name"]}" '. += {"id":$m}' \
-            | ${pkgs.jq}/bin/jq -f ${camelCaseToSnakeCase} \
+          ${pkgs.jq}/bin/jq --arg m "''${ids["$name"]}" '. += {"id":$m}' <<< "$monitorSnakeCase" \
             | ${update-monitor} ''${ids["$name"]}
         else
           echo "Monitor $name is up-to-date with phare.io"
@@ -130,7 +129,7 @@ let
 
        else
         echo "Creating monitor with name $name"
-        echo "$monitor" | ${pkgs.jq}/bin/jq -f ${camelCaseToSnakeCase} | ${create-monitor}
+        ${pkgs.jq}/bin/jq -f ${camelCaseToSnakeCase} <<< "$monitor" | ${create-monitor}
        fi
     done < <(cat ${monitors-json} | ${pkgs.jq}/bin/jq -c '.[]')
 
