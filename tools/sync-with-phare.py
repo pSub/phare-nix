@@ -87,11 +87,11 @@ def main():
                 resume_monitor(phare_monitors[name]['id'])
                 logger.info("Resumed monitor %s", name)
 
-            if not monitor_diff(monitor, phare_monitors[name]):
+            if monitor_diff(monitor, phare_monitors[name]) != { }:
                 update_monitor(phare_monitors[name]['id'], monitor)
                 logger.info("Updated monitor %s", name)
-
-            logger.info("Monitor %s up-to-date with phare.io", name)
+            else:
+                logger.info("Monitor %s up-to-date with phare.io", name)
         else:
             create_monitor(monitor)
             logger.info("Created monitor %s", name)
