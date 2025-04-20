@@ -49,6 +49,37 @@ let
            "sa-bra-gru"
       ]);
 
+    intervalType = types.enum [
+           30
+           60
+           120
+           180
+           300
+           600
+           900
+           1800
+           3600
+      ];
+
+  timeoutType = types.enum [
+           1000
+           2000
+           3000
+           4000
+           5000
+           6000
+           7000
+           8000
+           9000
+           10000
+           15000
+           20000
+           25000
+           30000
+      ];
+
+  confirmationType = types.enum [ 1 2 3 4 5 ];
+
   options = {
     alertPolicyId = mkOption {
       type = types.ints.positive;
@@ -80,48 +111,23 @@ let
       description = "Monitoring request, depends of the chosen protocol.";
     };
     interval = mkOption {
-      type = types.enum [
-           30
-           60
-           120
-           180
-           300
-           600
-           900
-           1800
-           3600
-      ];
-      default = 60;
+      type = intervalType;
+      default = config.services.phare.interval;
       description = "Monitoring interval in seconds.";
     };
     timeout = mkOption {
-      type = types.enum [
-           1000
-           2000
-           3000
-           4000
-           5000
-           6000
-           7000
-           8000
-           9000
-           10000
-           15000
-           20000
-           25000
-           30000
-      ];
-      default = 7000;
+      type = timeoutType;
+      default = config.services.phare.timeout;
       description = "Monitoring timeout in milliseconds.";
     };
     incidentConfirmations = mkOption {
-      type = types.enum [ 1 2 3 4 5 ];
-      default = 1;
+      type = confirmationType;
+      default = config.services.phare.incidentConfirmations;
       description = "Number of uninterrupted failed checks required to create an incident";
     };
     recoveryConfirmations = mkOption {
-      type = types.enum [ 1 2 3 4 5 ];
-      default = 1;
+      type = confirmationType;
+      default = config.services.phare.recoveryConfirmations;
       description = "Number of uninterrupted successful checks required to resolve an incident";
     };
     regions = mkOption {
@@ -150,6 +156,30 @@ in {
       type = regionType;
       default = [ "eu-deu-muc" "eu-swe-arn" ];
       description = "List of regions where monitoring checks are performed";
+    };
+
+    services.phare.interval = mkOption {
+      type = intervalType;
+      default = 60;
+      description = "Monitoring interval in seconds.";
+    };
+
+    services.phare.timeout = mkOption {
+      type = timeoutType;
+      default = 7000;
+      description = "Monitoring timeout in milliseconds.";
+    };
+
+    services.phare.incidentConfirmations = mkOption {
+      type = confirmationType;
+      default = 1;
+      description = "Number of uninterrupted failed checks required to create an incident";
+    };
+
+    services.phare.recoveryConfirmations = mkOption {
+      type = confirmationType;
+      default = 1;
+      description = "Number of uninterrupted successful checks required to resolve an incident";
     };
 
     services.phare.monitors = mkOption {
