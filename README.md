@@ -2,12 +2,12 @@
 A NixOS module for [phare.io](https://phare.io) monitor declarations.
 
 ## Motivation
-NixOS provides you with tools to setup a webservice in a simple manner
+NixOS provides you with tools to setup a web-service in a simple manner
 and even takes care of SSL certificates for you. This module extends
-the capabilities to monitoring webservices. You no longer have to
-click through a webinterface each time you create / modify a webservice,
-but instead turn on monitoring for a webservice by flicking a switch. As
-there is (to my knowlege) no standardized API for monitoring, this module
+the capabilities to monitoring web-services. You no longer have to
+click through a web-interface each time you create / modify a web-service,
+but instead turn on monitoring for a web-service by flicking a switch. As
+there is (to my knowledge) no standardized API for monitoring, this module
 uses the monitoring service [phare.io](https://phare.io).
 
 ## Installation
@@ -69,7 +69,7 @@ services.phare = {
 }
 
 services.nginx.virtualHosts."example.org" = {
-    # This option will generate a http-monitor for the virtual host. Depending on wheter
+    # This option will generate a http-monitor for the virtual host. Depending on whether
     # forceSSL is enabled for the virtual host the url for the monitor uses https.
     enablePhare = true;
     
@@ -91,7 +91,7 @@ applied by a systemd service to phare.io. Depending on the state of phare.io dif
 - If there is a monitor in your configuration but paused on phare.io, then the monitor is resumed on phare.io.
 - If there is a monitor on phare.io but not in your configuration, then the monitor is paused on phare.io.
 
-The test on wheter there is a monitor on phare.io or not is done using the name of the monitor.
+The test on whether there is a monitor on phare.io or not is done using the name of the monitor.
 
 You can find the phare.io API documentation at https://docs.phare.io/api-reference/introduction.
 
