@@ -61,13 +61,12 @@ def as_snake(dct):
 
 
 def monitor_diff(local_monitor, phare_monitor):
-    ignored = ["root['id']", "root['response_time']", "root['response_time']", "root['updated_at']",
-               "root['created_at']", "root['paused']", "root['status']"]
+    ignored = ["root['id']", "root['response_time']", "root['updated_at']", "root['created_at']", "root['paused']", "root['status']"]
 
-    if "project_id" not in local_monitor:
-        ignored += "root['project_id']"
-    if "request" not in local_monitor and "keyword" not in local_monitor["request"]:
-        ignored += "root['request']['keyword']"
+    if "project_id" not in local_monitor or local_monitor['project_id'] is None:
+        ignored += [ "root['project_id']" ]
+    if "request" in local_monitor and "keyword" not in local_monitor["request"] or local_monitor["request"]["keyword"] is None:
+        ignored += [ "root['request']['keyword']" ]
 
     return DeepDiff(local_monitor, phare_monitor, exclude_paths=ignored)
 
