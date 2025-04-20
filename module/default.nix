@@ -201,6 +201,11 @@ let
       default = config.services.phare.alertPolicyId;
       description = "The ID of the associated alert policy.";
     };
+    projectId = mkOption {
+      type = types.nullOr types.ints.positive;
+      default = null;
+      description = "The associated project.";
+    };
     name = mkOption {
       type = types.nullOr types.str;
       default = null;
