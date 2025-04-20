@@ -4,6 +4,8 @@ with lib;
 
 let
 
+  syncWithPhare = pkgs.callPackage ../tools/sync-with-phare.nix { };
+
   standaloneMonitors = mapAttrs (monitorName: monitorConfig:
     let name = if monitorConfig.name != null
       then monitorConfig.name
@@ -25,157 +27,9 @@ let
     in vhc.phare // { inherit name request; }
   ) (filterAttrs ( _: vhc: vhc.enablePhare) config.services.nginx.virtualHosts);
 
-  monitors = standaloneMonitors // nginxMonitors;
-
   monitors-json = pkgs.writeText "monitors.json" (builtins.toJSON monitors);
-
   nginx-monitors-json = pkgs.writeText "nginx-monitors.json" (builtins.toJSON nginxMonitors);
-
-  curl = "${pkgs.curl}/bin/curl --fail --silent";
-
-  list-monitors = pkgs.writeShellScript "list-monitors" ''
-    TOKEN=$(cat ${config.services.phare.tokenFile})
-    ${curl} --request GET \
-      --url https://api.phare.io/uptime/monitors \
-      --header "Authorization: Bearer $TOKEN"
-  '';
-
-  update-monitor = pkgs.writeShellScript "update-monitor" ''
-    MONITOR_ID=$1
-    TOKEN=$(cat ${config.services.phare.tokenFile})
-    ${curl} --request POST \
-      --url https://api.phare.io/uptime/monitors/"$MONITOR_ID" \
-      --header "Authorization: Bearer $TOKEN" \
-      --header 'Content-Type: application/json' \
-      --data @- > /dev/null
-  '';
-
-  create-monitor = pkgs.writeShellScript "create-monitor" ''
-    TOKEN=$(cat ${config.services.phare.tokenFile})
-    ${curl} --request POST \
-      --url https://api.phare.io/uptime/monitors \
-      --header "Authorization: Bearer $TOKEN" \
-      --header 'Content-Type: application/json' \
-      --data @- > /dev/null
-  '';
-
-  pause-monitor = pkgs.writeShellScript "pause-monitor" ''
-    MONITOR_ID=$1
-    TOKEN=$(cat ${config.services.phare.tokenFile})
-    ${curl} --request POST \
-      --url https://api.phare.io/uptime/monitors/"$MONITOR_ID"/pause \
-      --header "Authorization: Bearer $TOKEN"
-  '';
-
-  resume-monitor = pkgs.writeShellScript "resume-monitor" ''
-    MONITOR_ID=$1
-    TOKEN=$(cat ${config.services.phare.tokenFile})
-    ${curl} --request POST \
-      --url https://api.phare.io/uptime/monitors/"$MONITOR_ID"/resume \
-      --header "Authorization: Bearer $TOKEN"
-  '';
-
-
-  update-monitors = pkgs.writeShellScript "update-monitors" ''
-    declare -A ids=()
-    declare -A status=()
-    declare -A jsons=()
-
-    ignore=".id, .response_time, .response_time, .updated_at, .created_at, .paused, .status"
-
-    upstream=$(${list-monitors})
-
-    while read json; do
-      IFS=$'\t' read name id paused < <(${pkgs.jq}/bin/jq -r '[.name, .id, .paused] | @tsv' <<< "$json")
-
-      ids["$name"]="$id"
-      status["$name"]="$paused"
-      jsons["$name"]="$json"
-    done < <(${pkgs.jq}/bin/jq -r -c '.data[]' <<< "$upstream")
-
-    while read monitor; do
-      name=$(${pkgs.jq}/bin/jq -r '.name' <<< "$monitor")
-      if [[ -v ids["$name"] ]]; then
-
-        if [[ "''${status[$name]}" == "true" ]]; then
-          echo "Resuming monitor $name"
-          ${resume-monitor} ''${ids["$name"]}
-        fi
-
-        ${pkgs.jq}/bin/jq -e 'has(".project_id")' <<< "$monitor" &> /dev/null
-        if [[ $? -ne 0 ]]; then
-          ignore+=", .project_id"
-        fi
-
-        ${pkgs.jq}/bin/jq -e 'has(".request.keyword")' <<< "$monitor" &> /dev/null
-        if [[ $? -ne 0 ]]; then
-          ignore+=", .request.keyword"
-        fi
-
-        monitorSnakeCase=$(${pkgs.jq}/bin/jq --sort-keys -f ${camelCaseToSnakeCase} <<< "$monitor")
-
-        ${pkgs.diffutils}/bin/diff &> /dev/null <(${pkgs.jq}/bin/jq --sort-keys "del($ignore)" <<< "''${jsons["$name"]}") \
-             <(echo "$monitorSnakeCase") 
-
-        if [[ $? -ne 0 ]]; then
-          echo "Updating monitor $name"
-          ${pkgs.jq}/bin/jq --arg m "''${ids["$name"]}" '. += {"id":$m}' <<< "$monitorSnakeCase" \
-            | ${update-monitor} ''${ids["$name"]}
-        else
-          echo "Monitor $name is up-to-date with phare.io"
-        fi
-
-        unset ids["$name"]
-
-       else
-        echo "Creating monitor with name $name"
-        ${pkgs.jq}/bin/jq -f ${camelCaseToSnakeCase} <<< "$monitor" | ${create-monitor}
-       fi
-    done < <(cat ${monitors-json} | ${pkgs.jq}/bin/jq -c '.[]')
-
-    for name in "''${!ids[@]}"; do
-      if [[ "''${status[$name]}" != "true" ]]; then
-        echo "Pausing monitor $name"
-        ${pause-monitor} "''${ids[$name]}"
-      fi
-    done
-  '';
-
-  # Copied from https://gist.github.com/reegnz/5bceb53427008a4ff9367eb8eae97b85
-  camelCaseToSnakeCase = pkgs.writeText "camelCaseToSnakeCase" ''
-    def map_keys(mapper):
-      walk(
-        if type == "object"
-        then
-          with_entries({
-            key: (.key|mapper),
-    	value
-          })
-        else .
-        end
-      );
-
-    def camel_to_snake:
-      [
-        splits("(?=[A-Z])")
-      ]
-      |map(
-        select(. != "")
-        | ascii_downcase
-      )
-      | join("_");
-
-    def snake_to_camel:
-      split("_")
-      | map(
-        split("")
-        | .[0] |= ascii_upcase
-        | join("")
-      )
-      | join("");
-
-    map_keys(camel_to_snake)
-      '';
+  monitors = standaloneMonitors // nginxMonitors;
 
   regionType = types.listOf (types.enum [
            "as-jpn-hnd"
@@ -317,13 +171,17 @@ in {
       wantedBy = [ "multi-user.target" ];
       wants = [ "network-online.target" ];
       after = [ "network-online.target" ];
+      environment = {
+        PHARE_TOKEN_FILE = config.services.phare.tokenFile;
+      };
 
       serviceConfig = {
         Type = "oneshot";
-        ExecStart = "${update-monitors}";
+        ExecStart = "${syncWithPhare}/bin/sync-with-phare --monitorfile ${monitors-json}";
         RemainAfterExit = "yes";
         TimeoutSec = "infinity";
         StandardOutput = "journal+console";
+        
       };
     };
     
