@@ -25,28 +25,28 @@ def list_monitors():
     return r.json()
 
 
-def create_monitor(json):
+def create_monitor(json_object):
     requests.post(urllib.parse.urljoin(phare_endpoint, "uptime/monitors"),
-                  data=json,
-                  headers={"Authorization": "Beaer " + phare_token,
+                  data=json.dumps(json_object),
+                  headers={"Authorization": "Bearer " + phare_token,
                            "Content-Type": "application/json"})
 
 
-def update_monitor(id, json):
-    requests.post(urllib.parse.urljoin(phare_endpoint, "uptime/monitors", id),
-                  data=json,
-                  headers={"Authorization": "Beaer " + phare_token,
+def update_monitor(id, json_object):
+    requests.post(urllib.parse.urljoin(phare_endpoint, "uptime/monitors/" + str(id)),
+                  data=json.dumps(json_object),
+                  headers={"Authorization": "Bearer " + phare_token,
                            "Content-Type": "application/json"})
 
 
 def pause_monitor(id):
-    requests.post(urllib.parse.urljoin(phare_endpoint, "uptime/monitors", id, "pause"),
-                  headers={"Authorization": "Beaer " + phare_token})
+    requests.post(urllib.parse.urljoin(phare_endpoint, "uptime/monitors/" + str(id) + "/pause"),
+                  headers={"Authorization": "Bearer " + phare_token})
 
 
 def resume_monitor(id):
-    requests.post(urllib.parse.urljoin(phare_endpoint, "uptime/monitors", id, "resume"),
-                  headers={"Authorization": "Beaer " + phare_token})
+    requests.post(urllib.parse.urljoin(phare_endpoint, "uptime/monitors/" + str(id) + "/resume"),
+                  headers={"Authorization": "Bearer " + phare_token})
 
 
 def camel_to_snake(camel_case_string):
