@@ -5,7 +5,7 @@ python3.pkgs.buildPythonApplication {
 
   format = "other";
 
-  src = ./sync-with-phare.py;
+  src = ./sync_with_phare.py;
 
   propagatedBuildInputs = with python3.pkgs; [
     deepdiff
