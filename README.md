@@ -42,7 +42,7 @@ services.phare = {
     enable = true; # enables the script that interacts with phare.io
     tokenFile = "/run/secrets/phare-token"; # path to a file containing the API token
     alertPolicyId = 1234; # default alert-policy-id for monitors
-    regions = [ "eu-deu-muc" ]; # default regions for monitors
+    regions = [ "eu-deu-fra" ]; # default regions for monitors
 
     # the attribute sets for this option are converted to JSON and send to the phare.io
     # API, therefor you can use all fields provided by the phare.io API.
