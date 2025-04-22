@@ -22,7 +22,7 @@ let
         then vhc.phare.request
         else {
           method = "GET";
-          url = (if vhc.forceSSL then "https" else "http") + "://" +  virtualHost;
+          url = (if vhc.forceSSL or vhc.addSSL then "https" else "http") + "://" +  virtualHost;
         };
     in vhc.phare // { inherit name request; }
   ) (filterAttrs ( _: vhc: vhc.enablePhare) config.services.nginx.virtualHosts);
