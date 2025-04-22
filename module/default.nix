@@ -154,7 +154,7 @@ in {
 
     services.phare.regions = mkOption {
       type = regionType;
-      default = [ "eu-deu-muc" "eu-swe-arn" ];
+      default = [ "eu-deu-fra" "eu-swe-arn" ];
       description = "List of regions where monitoring checks are performed";
     };
 
