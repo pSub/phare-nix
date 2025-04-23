@@ -1,3 +1,5 @@
-{ nixpkgs ? import <nixpkgs> {} }:
+{
+  nixpkgs ? import <nixpkgs> { },
+}:
 
-nixpkgs.pkgs.callPackage ./doc.nix {  }
+nixpkgs.pkgs.callPackage ./doc.nix { }

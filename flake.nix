@@ -6,28 +6,35 @@
     flake-utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = { self, nixpkgs, flake-utils }:
+  outputs =
+    {
+      self,
+      nixpkgs,
+      flake-utils,
+    }:
     {
       nixosModules = {
         phare = import ./module/default.nix;
       };
-    } // flake-utils.lib.eachDefaultSystem (system:
+    }
+    // flake-utils.lib.eachDefaultSystem (
+      system:
       let
         overlay = final: prev: {
           helloNixosTests = self.packages.${system}.helloNixosTests;
         };
         pkgs = nixpkgs.legacyPackages.${system}.extend overlay;
       in
-        {
-          checks = {
-            helloNixosTest = pkgs.callPackage ./phare-boots.nix { inherit self; };
-          };
-          packages = {
-            phareNixDocs = pkgs.callPackage ./docs/doc.nix { inherit self; };
-            helloNixosTests = pkgs.writeScriptBin "hello-nixos-tests" ''
+      {
+        checks = {
+          helloNixosTest = pkgs.callPackage ./phare-boots.nix { inherit self; };
+        };
+        packages = {
+          phareNixDocs = pkgs.callPackage ./docs/doc.nix { inherit self; };
+          helloNixosTests = pkgs.writeScriptBin "hello-nixos-tests" ''
             systemctl start create-phare-monitors
-            '';
-          };
-        }
+          '';
+        };
+      }
     );
 }

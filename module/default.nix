@@ -1,4 +1,9 @@
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 with lib;
 
@@ -6,74 +11,90 @@ let
 
   syncWithPhare = pkgs.callPackage ../tools/sync-with-phare.nix { };
 
-  standaloneMonitors = mapAttrs (monitorName: monitorConfig:
-    let name = lib.defaultTo monitorName monitorConfig.name;
-    in monitorConfig // { inherit name; }
+  standaloneMonitors = mapAttrs (
+    monitorName: monitorConfig:
+    let
+      name = lib.defaultTo monitorName monitorConfig.name;
+    in
+    monitorConfig // { inherit name; }
   ) config.services.phare.monitors;
 
-
-  nginxMonitors = mapAttrs (virtualHost: vhc: let
+  nginxMonitors = mapAttrs (
+    virtualHost: vhc:
+    let
       name = lib.defaultTo virtualHost vhc.phare.name;
       request = {
         method = lib.defaultTo "GET" (vhc.phare.request.method or null);
-        url = let default = (if vhc.forceSSL or vhc.addSSL then "https" else "http") + "://" + virtualHost;
-              in lib.defaultTo default (vhc.phare.request.url or null);
-        };
-    in vhc.phare // { inherit name request; }
-  ) (filterAttrs ( _: vhc: vhc.enablePhare) config.services.nginx.virtualHosts);
+        url =
+          let
+            default = (if vhc.forceSSL or vhc.addSSL then "https" else "http") + "://" + virtualHost;
+          in
+          lib.defaultTo default (vhc.phare.request.url or null);
+      };
+    in
+    vhc.phare // { inherit name request; }
+  ) (filterAttrs (_: vhc: vhc.enablePhare) config.services.nginx.virtualHosts);
 
   monitors-json = pkgs.writeText "monitors.json" (builtins.toJSON monitors);
   nginx-monitors-json = pkgs.writeText "nginx-monitors.json" (builtins.toJSON nginxMonitors);
   monitors = standaloneMonitors // nginxMonitors;
 
-  regionType = types.listOf (types.enum [
-           "as-jpn-hnd"
-           "as-sgp-sin"
-           "eu-deu-fra"
-           "eu-gbr-lhr"
-           "eu-swe-arn"
-           "na-mex-mex"
-           "na-usa-sea"
-           "na-usa-iad"
+  regionType = types.listOf (
+    types.enum [
+      "as-jpn-hnd"
+      "as-sgp-sin"
+      "eu-deu-fra"
+      "eu-gbr-lhr"
+      "eu-swe-arn"
+      "na-mex-mex"
+      "na-usa-sea"
+      "na-usa-iad"
 
-           "as-jpn-hnd"
-           "eu-deu-fra"
-           "na-usa-iad"
-           "na-usa-sea"
-           "oc-aus-syd"
-           "sa-bra-gru"
-      ]);
+      "as-jpn-hnd"
+      "eu-deu-fra"
+      "na-usa-iad"
+      "na-usa-sea"
+      "oc-aus-syd"
+      "sa-bra-gru"
+    ]
+  );
 
-    intervalType = types.enum [
-           30
-           60
-           120
-           180
-           300
-           600
-           900
-           1800
-           3600
-      ];
+  intervalType = types.enum [
+    30
+    60
+    120
+    180
+    300
+    600
+    900
+    1800
+    3600
+  ];
 
   timeoutType = types.enum [
-           1000
-           2000
-           3000
-           4000
-           5000
-           6000
-           7000
-           8000
-           9000
-           10000
-           15000
-           20000
-           25000
-           30000
-      ];
+    1000
+    2000
+    3000
+    4000
+    5000
+    6000
+    7000
+    8000
+    9000
+    10000
+    15000
+    20000
+    25000
+    30000
+  ];
 
-  confirmationType = types.enum [ 1 2 3 4 5 ];
+  confirmationType = types.enum [
+    1
+    2
+    3
+    4
+    5
+  ];
 
   options = {
     alertPolicyId = mkOption {
@@ -93,8 +114,8 @@ let
     };
     protocol = mkOption {
       type = types.enum [
-           "http"
-           "tcp"
+        "http"
+        "tcp"
       ];
       default = "http";
       description = "Whether the monitor should use http of tcp to access the resource.";
@@ -131,7 +152,8 @@ let
     };
   };
 
-in {
+in
+{
   options = {
     services.phare.enable = mkEnableOption "Whether to enable phare.io management";
 
@@ -150,7 +172,10 @@ in {
 
     services.phare.regions = mkOption {
       type = regionType;
-      default = [ "eu-deu-fra" "eu-swe-arn" ];
+      default = [
+        "eu-deu-fra"
+        "eu-swe-arn"
+      ];
       description = "List of regions where monitoring checks are performed";
     };
 
@@ -180,16 +205,18 @@ in {
 
     services.phare.monitors = mkOption {
       description = "Declarative phare.io monitor config";
-      type = types.attrsOf (types.submodule { inherit options; } );
+      type = types.attrsOf (types.submodule { inherit options; });
       default = { };
     };
 
     services.nginx.virtualHosts = mkOption {
       internal = true;
-      type = types.attrsOf (types.submodule {
-        options.enablePhare = mkEnableOption "Whether to enable phare.io management for the virtualhost";
-        options.phare = options;
-      } );
+      type = types.attrsOf (
+        types.submodule {
+          options.enablePhare = mkEnableOption "Whether to enable phare.io management for the virtualhost";
+          options.phare = options;
+        }
+      );
     };
   };
 
@@ -209,10 +236,10 @@ in {
         RemainAfterExit = "yes";
         TimeoutSec = "infinity";
         StandardOutput = "journal+console";
-        
+
       };
     };
-    
+
   };
 
 }

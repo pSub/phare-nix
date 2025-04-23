@@ -1,3 +1,5 @@
-{ nixpkgs ? import <nixpkgs> {} }:
+{
+  nixpkgs ? import <nixpkgs> { },
+}:
 
-nixpkgs.pkgs.callPackage ./sync-with-phare.nix {  }
+nixpkgs.pkgs.callPackage ./sync-with-phare.nix { }
