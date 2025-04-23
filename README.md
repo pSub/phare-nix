@@ -1,3 +1,5 @@
+[![Documentation](https://img.shields.io/badge/Documentation-Online-green)](https://phare-nix.quine.de/nixos-options/)
+
 # phare-nix
 A NixOS module for [phare.io](https://phare.io) monitor declarations.
 
@@ -14,7 +16,7 @@ uses the monitoring service [phare.io](https://phare.io).
 > [!NOTE]  
 > This NixOS module requires [flakes](https://wiki.nixos.org/wiki/Flakes).
 
-Installation is straightforward and does not differ from other flakes. As
+Installation is straightforward and does not differ from other flakes. A
 basic flake with phare-nix cloud look like this:
 
 ``` nix
