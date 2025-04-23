@@ -1,0 +1,6 @@
+### Site metadata ###
+site_name: phare-nix
+docs_dir: build
+site_url: https://github.com/pSub/phare-nix
+site_description: >-
+  A NixOS module for [phare.io](https://phare.io) monitor declarations.

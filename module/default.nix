@@ -149,6 +149,8 @@ in {
 
     services.phare.alertPolicyId = mkOption {
       type = types.ints.positive;
+      # FIMXE: This option should not have a default value. The default value is only there for generating the docs.
+      default = 1;
       description = "The ID of the associated alert policy.";
     };
 
@@ -183,11 +185,13 @@ in {
     };
 
     services.phare.monitors = mkOption {
+      description = "Declarative phare.io monitor config";
       type = types.attrsOf (types.submodule { inherit options; } );
       default = { };
     };
 
-    services.nginx.virtualHosts =  mkOption {
+    services.nginx.virtualHosts = mkOption {
+      internal = true;
       type = types.attrsOf (types.submodule {
         options.enablePhare = mkEnableOption "Whether to enable phare.io management for the virtualhost";
         options.phare = options;

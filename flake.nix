@@ -23,6 +23,7 @@
             helloNixosTest = pkgs.callPackage ./phare-boots.nix { inherit self; };
           };
           packages = {
+            phareNixDocs = pkgs.callPackage ./docs/doc.nix { inherit self; };
             helloNixosTests = pkgs.writeScriptBin "hello-nixos-tests" ''
             systemctl start create-phare-monitors
             '';
