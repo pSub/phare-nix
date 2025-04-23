@@ -83,6 +83,8 @@ services.nginx.virtualHosts."example.org" = {
 };
 ```
 
+You can find the documentation of all available options at [phare-nix.quine.de/nixos-options](https://phare-nix.quine.de/nixos-options/).
+
 Once you rebuild your system (eg. with `nixos-rebuiold`) the configuration of the monitors is
 applied by a systemd service to phare.io. Depending on the state of phare.io different actions are performed:
 
