@@ -7,22 +7,17 @@ let
   syncWithPhare = pkgs.callPackage ../tools/sync-with-phare.nix { };
 
   standaloneMonitors = mapAttrs (monitorName: monitorConfig:
-    let name = if monitorConfig.name != null
-      then monitorConfig.name
-      else monitorName;
+    let name = lib.defaultTo monitorName monitorConfig.name;
     in monitorConfig // { inherit name; }
   ) config.services.phare.monitors;
 
 
   nginxMonitors = mapAttrs (virtualHost: vhc: let
-      name = if vhc.phare.name != null
-             then vhc.phare.name
-             else virtualHost;
-      request = if vhc.phare.request != null
-        then vhc.phare.request
-        else {
-          method = "GET";
-          url = (if vhc.forceSSL or vhc.addSSL then "https" else "http") + "://" +  virtualHost;
+      name = lib.defaultTo virtualHost vhc.phare.name;
+      request = {
+        method = lib.defaultTo "GET" (vhc.phare.request.method or null);
+        url = let default = (if vhc.forceSSL or vhc.addSSL then "https" else "http") + "://" + virtualHost;
+              in lib.defaultTo default (vhc.phare.request.url or null);
         };
     in vhc.phare // { inherit name request; }
   ) (filterAttrs ( _: vhc: vhc.enablePhare) config.services.nginx.virtualHosts);
@@ -104,10 +99,9 @@ let
       default = "http";
       description = "Whether the monitor should use http of tcp to access the resource.";
     };
-
     request = mkOption {
-      type = types.nullOr types.attrs;
-      default = null;
+      type = types.attrs;
+      default = { };
       description = "Monitoring request, depends of the chosen protocol.";
     };
     interval = mkOption {
