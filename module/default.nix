@@ -156,6 +156,7 @@ in
 {
   options = {
     services.phare.enable = mkEnableOption "Whether to enable phare.io management";
+    services.phare.enableMaintenaceModeOnRebuild = mkEnableOption "Whether all monitors are paused before a rebuild.";
 
     services.phare.tokenFile = mkOption {
       type = types.str;
@@ -221,23 +222,36 @@ in
   };
 
   config = mkIf config.services.phare.enable {
-    systemd.services.phare-monitors = {
+    systemd.services.sync-phare-monitors = {
       description = "Apply the phare monitor config";
       wantedBy = [ "multi-user.target" ];
       wants = [ "network-online.target" ];
       after = [ "network-online.target" ];
-      environment = {
-        PHARE_TOKEN_FILE = config.services.phare.tokenFile;
-      };
+      environment.PHARE_TOKEN_FILE = config.services.phare.tokenFile;
 
       serviceConfig = {
         Type = "oneshot";
-        ExecStart = "${syncWithPhare}/bin/sync-with-phare --monitorfile ${monitors-json}";
+        ExecStart = "${syncWithPhare}/bin/sync-with-phare sync-monitors --monitorfile ${monitors-json}";
         RemainAfterExit = "yes";
         TimeoutSec = "infinity";
         StandardOutput = "journal+console";
-
       };
+    };
+
+#    systemd.services.pause-phare-monitors = mkIf config.services.phare.enableMaintenaceModeOnRebuild {
+#      description = "Pauses all active monitors before a NixOS rebuild.";
+#      environment.PHARE_TOKEN_FILE = config.services.phare.tokenFile;
+#
+#      serviceConfig = {
+#        Type = "oneshot";
+#        ExecStart = "${syncWithPhare}/bin/sync-with-phare pause-all-monitors";
+#        StandardOutput = "journal+console";
+#      };
+#    };
+
+    nix.settings = mkIf config.services.phare.enableMaintenaceModeOnRebuild {
+      # trusted-users = [ cfg.user ];
+      pre-build-hook = "${syncWithPhare}/bin/sync-with-phare pause-all-monitors";
     };
 
   };

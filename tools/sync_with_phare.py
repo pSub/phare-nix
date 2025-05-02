@@ -13,6 +13,7 @@ import sys
 import urllib
 import urllib.parse
 from functools import reduce
+from joblib import Parallel, delayed
 
 import requests
 from deepdiff import DeepDiff
@@ -130,18 +131,15 @@ def monitor_diff(local_monitor, phare_monitor):
     return DeepDiff(local_monitor, phare_monitor, exclude_paths=ignored)
 
 
-def main():
+def sync_monitors(monitor_file):
     """
-    Synchronizes the local configuration with the configuration on phare.io. The local configuration
-    always has precedence.
-    """
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--monitorfile', type=argparse.FileType('r'))
-    args = parser.parse_args()
+    Synchronizes the monitors on phare.io with the local monitor declarations.
 
+    :param monitor_file: file containing JSON monitor declarations
+    """
     phare_monitors = {monitor['name']: monitor for monitor in list_monitors()[
         'data']}
-    local_monitors = json.load(args.monitorfile, object_hook=as_snake)
+    local_monitors = json.load(monitor_file, object_hook=as_snake)
 
     for name, monitor in local_monitors.items():
         if name in phare_monitors:
@@ -161,6 +159,46 @@ def main():
     for name in phare_monitors.keys() - local_monitors.keys():
         pause_monitor(phare_monitors[name]['id'])
         logger.info("Paused monitor %s", name)
+
+
+def pause_all_active_monitors():
+    """
+    Pauses all active monitors on phare.io.
+    """
+    active_monitors = filter(
+        lambda monitor: not monitor["paused"], list_monitors()['data'])
+    Parallel(n_jobs=5)(delayed(pause_monitor)(
+        active_monitor['id']) for active_monitor in active_monitors)
+
+
+def resume_all_inactive_monitors():
+    """
+    Resumes all inactive monitors on phare.io.
+    """
+    inactive_monitors = filter(
+        lambda monitor: monitor["paused"], list_monitors()['data'])
+    Parallel(n_jobs=5)(delayed(resume_monitor)(
+        inactive_monitor['id']) for inactive_monitor in inactive_monitors)
+
+
+def main():
+    """
+    Synchronizes the local configuration with the configuration on phare.io. The local configuration
+    always has precedence.
+    """
+    parser = argparse.ArgumentParser()
+    parser.add_argument('action', choices=[
+                        'sync-monitors', 'pause-all-monitors', 'resume-all-monitors'])
+    parser.add_argument('--monitorfile', type=argparse.FileType('r'))
+    args = parser.parse_args()
+
+    match args.action:
+        case "sync-monitors":
+            sync_monitors(args.monitorfile)
+        case "pause-all-monitors":
+            pause_all_active_monitors()
+        case "resume-all-monitors":
+            resume_all_inactive_monitors()
 
 
 if __name__ == '__main__':
