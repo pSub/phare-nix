@@ -194,13 +194,13 @@ in
 
     services.phare.incidentConfirmations = mkOption {
       type = confirmationType;
-      default = 1;
+      default = 2;
       description = "Number of uninterrupted failed checks required to create an incident";
     };
 
     services.phare.recoveryConfirmations = mkOption {
       type = confirmationType;
-      default = 1;
+      default = 2;
       description = "Number of uninterrupted successful checks required to resolve an incident";
     };
 
