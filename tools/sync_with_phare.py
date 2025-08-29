@@ -10,12 +10,13 @@ import json
 import logging
 import os
 import sys
+from time import time
 import urllib
 import urllib.parse
 from functools import reduce
 from joblib import Parallel, delayed
 
-import requests
+from requests_ratelimiter import LimiterSession
 from deepdiff import DeepDiff
 
 logger = logging.getLogger("sync-with-phare")
@@ -25,6 +26,7 @@ PHARE_TOKEN_FILE = os.getenv('PHARE_TOKEN_FILE')
 PHARE_TOKEN = ""
 PHARE_ENDPOINT = os.getenv('PHARE_ENDPOINT', "https://api.phare.io")
 
+session = LimiterSession(per_minute=100)
 
 def list_monitors():
     """
@@ -33,7 +35,7 @@ def list_monitors():
 
     :return: a json representation of the monitors on phare.io
     """
-    r = requests.get(urllib.parse.urljoin(PHARE_ENDPOINT, "uptime/monitors"),
+    r = session.get(urllib.parse.urljoin(PHARE_ENDPOINT, "uptime/monitors"),
                      headers={"Authorization": "Bearer " + PHARE_TOKEN},
                      timeout=10)
     return r.json()
@@ -45,7 +47,7 @@ def create_monitor(json_object):
 
     :param json_object: a json representation of a monitor
     """
-    requests.post(urllib.parse.urljoin(PHARE_ENDPOINT, "uptime/monitors"),
+    session.post(urllib.parse.urljoin(PHARE_ENDPOINT, "uptime/monitors"),
                   data=json.dumps(json_object),
                   headers={"Authorization": "Bearer " + PHARE_TOKEN,
                            "Content-Type": "application/json"},
@@ -59,7 +61,7 @@ def update_monitor(id_, json_object):
     :param id_: id of a monitor
     :param json_object: a json representation of a monitor
     """
-    requests.post(urllib.parse.urljoin(PHARE_ENDPOINT, "uptime/monitors/" + str(id_)),
+    session.post(urllib.parse.urljoin(PHARE_ENDPOINT, "uptime/monitors/" + str(id_)),
                   data=json.dumps(json_object),
                   headers={"Authorization": "Bearer " + PHARE_TOKEN,
                            "Content-Type": "application/json"},
@@ -72,7 +74,7 @@ def pause_monitor(id_):
 
     :param id_: id of a monitor
     """
-    requests.post(urllib.parse.urljoin(PHARE_ENDPOINT, "uptime/monitors/" + str(id_) + "/pause"),
+    session.post(urllib.parse.urljoin(PHARE_ENDPOINT, "uptime/monitors/" + str(id_) + "/pause"),
                   headers={"Authorization": "Bearer " + PHARE_TOKEN},
                   timeout=10)
 
@@ -83,7 +85,7 @@ def resume_monitor(id_):
 
     :param id_: id of a monitor
     """
-    requests.post(urllib.parse.urljoin(PHARE_ENDPOINT, "uptime/monitors/" + str(id_) + "/resume"),
+    session.post(urllib.parse.urljoin(PHARE_ENDPOINT, "uptime/monitors/" + str(id_) + "/resume"),
                   headers={"Authorization": "Bearer " + PHARE_TOKEN},
                   timeout=10)
 
