@@ -10,7 +10,6 @@ import json
 import logging
 import os
 import sys
-from time import time
 import urllib
 import urllib.parse
 from functools import reduce
