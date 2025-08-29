@@ -150,6 +150,11 @@ let
       default = config.services.phare.regions;
       description = "List of regions where monitoring checks are performed";
     };
+    successAssertions = mkOption {
+      type = types.nullOr (types.listOf(types.attrs));
+      default = config.services.phare.successAssertions;
+      description = "List of assertions that must be true for the check to be considered successful";
+    };
   };
 
 in
@@ -202,6 +207,17 @@ in
       type = confirmationType;
       default = 2;
       description = "Number of uninterrupted successful checks required to resolve an incident";
+    };
+
+    services.phare.successAssertions = mkOption {
+      type = types.nullOr (types.listOf(types.attrs));
+      default = [
+        { type = "status_code";
+          operator = "in";
+          value = "2xx";
+        }
+      ];
+      description = "List of assertions that must be true for the check to be considered successful";
     };
 
     services.phare.monitors = mkOption {
