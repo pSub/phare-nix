@@ -9,7 +9,7 @@ python3.pkgs.buildPythonApplication {
 
   propagatedBuildInputs = with python3.pkgs; [
     deepdiff
-    requests-ratelimiter
+    requests
     joblib
   ];
 
