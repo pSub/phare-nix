@@ -1,3 +1,7 @@
+> [!IMPORTANT]
+> This repository has been moved from GitHub to Codeberg (https://codeberg.org/pSub/phare-nix). 
+> The GitHub repository is archieved will no longer receive updates. Please update your bookmarks and clones accordingly.
+
 [![Documentation](https://img.shields.io/badge/Documentation-Online-green)](https://phare-nix.quine.de/nixos-options/)
 
 # phare-nix
